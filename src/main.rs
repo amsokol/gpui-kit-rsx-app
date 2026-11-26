@@ -12,34 +12,23 @@
     )
 )]
 
-use gpui::component::{
-    ActiveTheme as _, IconName,
-    button::{Button, ButtonVariants as _},
-    label::Label,
-};
+mod accent;
+mod app_window;
+mod platform;
+mod system_font;
+mod theme;
+mod window_state;
+
 use gpui::prelude::*;
 use gpui::*;
-use gpui_rsx::{rsx, rsx_listener};
+use mimalloc::MiMalloc;
 
-#[derive(Default)]
-struct HelloWorld {
-    clicks: usize,
-}
+use crate::app_window::{AppWindow, window_options};
+use crate::window_state::WindowStateFile;
 
-impl Render for HelloWorld {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        rsx! {
-            <div class="size-full flex flex-col gap-[8px] items-center justify-center"
-                bg={cx.theme().background} text_color={cx.theme().foreground}>
-                <Label(format!("Clicked {} times", self.clicks)) />
-                <Button("ok") primary icon={IconName::Check} label="Let's Go!"
-                    onClick={rsx_listener!(cx, notify, |view, _, _, _| {
-                        view.clicks += 1;
-                    })} />
-            </div>
-        }
-    }
-}
+/// All Rust allocations go through mimalloc.
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 fn main() {
     // `Assets` bundles the icons components draw; without it they render blank.
@@ -49,15 +38,46 @@ fn main() {
             // Must be called before using any GPUI Component features.
             gpui::init(cx);
 
-            // Opens a window with a `Root` wrapping the view, so dialogs, sheets,
-            // notifications and menus work in it.
-            if let Err(error) = gpui::open_window(WindowOptions::default(), cx, |_, cx| {
-                cx.new(|_| HelloWorld::default())
-            }) {
-                // Without a window the app is useless: report and leave, no panic.
-                eprintln!("failed to open window: {error:?}");
-                std::process::exit(1);
-            }
-            cx.activate(true);
+            // Quit with the last window, as a desktop application does.
+            cx.on_window_closed(|cx, _| {
+                if cx.windows().is_empty() {
+                    cx.quit();
+                }
+            })
+            .detach();
+
+            // Read the system's look before opening the window, so that it starts with it.
+            cx.spawn(async move |cx| {
+                let dark = theme::system_is_dark(cx).await;
+                let fonts = system_font::read(cx).await;
+                cx.update(|cx| {
+                    accent::init(cx);
+                    system_font::set(cx, &fonts);
+                    theme::apply(dark, cx);
+                    open_main_window(cx);
+                    accent::watch(cx, theme::reapply);
+                    system_font::watch(cx, theme::reapply);
+                });
+            })
+            .detach();
         });
+}
+
+fn open_main_window(cx: &mut App) {
+    let state_file = WindowStateFile::system();
+    let placement = state_file
+        .as_ref()
+        .and_then(WindowStateFile::load)
+        .map(|state| state.placement(cx));
+    let bounds = placement.map(|placement| placement.bounds);
+    // Opens a window with a `Root` wrapping the view, so dialogs, sheets,
+    // notifications and menus work in it.
+    if let Err(error) = gpui::open_window(window_options(placement), cx, |window, cx| {
+        cx.new(|cx| AppWindow::new(state_file, bounds, window, cx))
+    }) {
+        // Without a window the app is useless: report and leave, no panic.
+        eprintln!("failed to open window: {error:?}");
+        std::process::exit(1);
+    }
+    cx.activate(true);
 }

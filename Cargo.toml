@@ -10,6 +10,47 @@ publish = false
 # Pinned exactly because GPUI Kit pins its own GPUI snapshot.
 gpui = { package = "gpui-kit", version = "=0.11.0" }
 gpui-rsx = "0.13.0"
+# The per-user config directory, where the window state is kept.
+dirs = "7.0.0"
+futures-lite = "2.6.1"
+# The global allocator: the owner's wrapper of Microsoft's mimalloc, taken from git. The
+# crate of this name on crates.io is another project. Exempt from the quarantine (CLAUDE.md).
+mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.7.1" }
+# The system accent color: XDG portal on Linux, UISettings on Windows, NSColor on macOS.
+mundy = { version = "=0.2.3", default-features = false, features = [
+    "accent-color",
+    "async-io",
+] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+
+[dev-dependencies]
+# The test platform behind `#[gpui::test]`.
+gpui = { package = "gpui-kit", version = "=0.11.0", features = ["test-support"] }
+
+# The desktop's UI font, read through the XDG settings portal. GPUI already depends on
+# `ashpd` with these features, and picks the system font itself on macOS and Windows.
+# Keep the version GPUI uses, even when a newer one is out, so that the app holds one
+# copy of `ashpd`. Move it when a `gpui-kit` update moves GPUI's.
+[target.'cfg(target_os = "linux")'.dependencies]
+ashpd = { version = "0.13.13", default-features = false, features = [
+    "async-io",
+    "settings",
+] }
+
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+# GPUI's text system on Linux, for tests/font_weights.rs of the patch below.
+gpui-pre-wgpu = "=0.3.14"
+
+# `vendor/` holds a patched copy of a dependency: not a member, so our checks leave it be.
+[workspace]
+exclude = ["vendor"]
+
+# GPUI's Linux text system, patched to draw variable fonts at the requested weight, the
+# desktop's UI font among them. The change is in vendor/gpui-pre-wgpu.patch; CLAUDE.md says
+# what to do with it when GPUI Kit is updated.
+[patch.crates-io]
+gpui-pre-wgpu = { path = "vendor/gpui-pre-wgpu" }
 
 [lints.rust]
 # `forbid`: no `#[allow]` can turn it back on.

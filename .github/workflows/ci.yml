@@ -1,0 +1,71 @@
+# Six platforms: Linux, Windows and macOS, each on x86_64 and Arm64. Linux x86_64 runs the
+# whole gate; the other five compile, lint and test, which covers the code that only builds
+# there: ours, GPUI Kit's and mundy's. Nobody runs the app on them by hand.
+#
+# The runners are named by version, so that a `-latest` label moving cannot change them.
+#
+# Actions are pinned to the commit of a release at least two days old (CLAUDE.md,
+# "Dependency quarantine").
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The list of README.md.
+  LINUX_PACKAGES: >-
+    libfontconfig1-dev libwayland-dev libx11-dev libxcb1-dev libxcb-render0-dev
+    libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libxkbcommon-x11-dev
+
+jobs:
+  gate:
+    name: Gate (Linux x86_64)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install the native dependencies
+        run: sudo apt-get update && sudo apt-get install -y $LINUX_PACKAGES
+      - uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+        with:
+          version: 2026.11.14
+          install_args: --locked
+      - name: Install the Rust of rust-toolchain.toml
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - run: mise run gate
+
+  platform:
+    name: Clippy and tests (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: Linux Arm64, runner: ubuntu-24.04-arm }
+          - { platform: Windows x86_64, runner: windows-2025 }
+          - { platform: Windows Arm64, runner: windows-11-arm }
+          - { platform: macOS Arm64, runner: macos-26 }
+          - { platform: macOS x86_64, runner: macos-26-intel }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install the native dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y $LINUX_PACKAGES
+      - name: Install the Rust of rust-toolchain.toml
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - run: cargo clippy --all-targets --locked -- -D warnings
+      - run: cargo test --locked
