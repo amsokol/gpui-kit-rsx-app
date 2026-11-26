@@ -1,15 +1,56 @@
 # gpui-kit-rsx-app
 
-A minimal desktop app: a label and a button that counts clicks. It uses
+A minimal desktop app for Linux, macOS and Windows: a label and a button that counts
+clicks, in a window that follows the system's look. It uses
 [GPUI Kit](https://gpui-kit.com) 0.11.0 and
-[gpui-rsx](https://github.com/wsafight/gpui-rsx) 0.13.0. The startup code follows
-GPUI Kit's `hello_world` example.
+[gpui-rsx](https://github.com/wsafight/gpui-rsx) 0.13.0. Memory comes from
+[mimalloc](https://github.com/amsokol/mimalloc) 3.7.1, built from its C sources, so
+the build needs a C compiler.
+
+Only Linux x86_64 (GNOME on Wayland) has been tried by hand. CI is set up to compile and
+test the app on Linux, Windows and macOS, each on x86_64 and Arm64.
+
+## The window
+
+- **Title bar.** GPUI Kit's own, laid out like the system's. On macOS and Linux the
+  title is centered, bold and has no icon. On Windows it is at the start, in the
+  regular weight, after the app's icon. macOS keeps its traffic lights, and Linux
+  follows the desktop's button layout. Where the window manager draws a title bar
+  itself, the app draws none.
+- **Light and dark.** The system's mode at startup, and each change after it.
+- **Accent color.** The system's accent color tints the controls, and follows changes.
+- **Font.** The system's UI font. On Linux it is read from GNOME's or KDE's setting
+  through the XDG settings portal; macOS and Windows get it from GPUI. The size is
+  GPUI Kit's, not the system's. For bold text in variable fonts on Linux, Ubuntu's
+  and GNOME's among them, the app builds a patched copy of GPUI's text system
+  (`vendor/gpui-pre-wgpu.patch`).
+- **Size and position.** Size, position, display and the maximized state are saved
+  when the window closes or the app quits; a killed process (`Ctrl+C` in the
+  terminal) saves nothing. The window returns to its display, no larger than it. If
+  that display is gone, the window opens in the center of the primary one. A Wayland
+  compositor chooses the position itself, and an X11 window manager may too.
+
+The saved window is in `window.json`:
+
+| System  | Folder                                            |
+| ------- | ------------------------------------------------- |
+| Linux   | `~/.config/gpui-kit-rsx-app/`                     |
+| macOS   | `~/Library/Application Support/gpui-kit-rsx-app/` |
+| Windows | `%LOCALAPPDATA%\gpui-kit-rsx-app\`                |
 
 ## Run
 
 ```bash
 cargo run
 ```
+
+To try another look without changing the system's settings:
+
+| Variable                  | Value                                       |
+| ------------------------- | ------------------------------------------- |
+| `GPUI_KIT_RSX_APP_THEME`  | `light` or `dark`                           |
+| `GPUI_KIT_RSX_APP_ACCENT` | a color such as `#2ecc71`                   |
+| `GPUI_KIT_RSX_APP_FONT`   | an installed font family, e.g. `Noto Serif` |
 
 On Debian or Ubuntu, install the native dependencies first (list from the gpui-rsx
 demo instructions):
@@ -30,3 +71,6 @@ mise trust             # once per clone, if mise asks
 mise install --locked  # the tools of mise.toml, as recorded in mise.lock
 mise run gate          # formatting, clippy, dependencies, Markdown, tests
 ```
+
+CI (`.github/workflows/ci.yml`) runs the gate on Linux x86_64, and clippy and the tests
+on the other five platforms: Linux Arm64, and Windows and macOS on x86_64 and Arm64.

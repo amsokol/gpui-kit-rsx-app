@@ -15,7 +15,57 @@ mise run format   # format the Rust in place
 - Fix what the gate reports. Don't silence a check to make it pass.
 - An exception in `deny.toml` (an ignored advisory or another license) needs a comment
   with the reason; ask the owner before adding one.
-- markdownlint skips `.claude/skills/`, which holds unmodified copies.
+- markdownlint skips `.claude/skills/`, which holds unmodified copies, and `vendor/`.
+
+## Patched dependency
+
+`vendor/gpui-pre-wgpu/` is `gpui-pre-wgpu` 0.3.14, GPUI's text system and renderer on
+Linux, with one fix, and `[patch.crates-io]` in `Cargo.toml` builds it. Unpatched, it
+uses every variable font at its default weight, so the UI font of GNOME and Ubuntu has
+no bold. `tests/font_weights.rs` fails without the fix.
+
+- `vendor/gpui-pre-wgpu.patch` is the whole change to the registry's package, which
+  lacks only its `Cargo.lock` here. Edit nothing else there. After a change to the
+  code, regenerate the patch; keep the notice at the top of the changed file (Apache-2.0).
+- The copy is not a workspace member, so the gate doesn't format, lint or test it. It
+  is no longer a registry crate either, so don't count on `cargo-deny` to report an
+  advisory for it. Its own tests don't build: the published package lacks the fonts
+  they include.
+- Keep our project rules (lints, no panics) for our code; don't restyle upstream code.
+
+## Platforms
+
+The app targets Linux, macOS and Windows, each on x86_64 and Arm64, but only Linux
+x86_64 can be run here.
+
+- Leave platform work to GPUI Kit and the libraries where they do it: the window
+  buttons and dragging (`TitleBar`), the accent color (`mundy`), the config folder
+  (`dirs`).
+- Write a branch on the system as data: a function of `platform::Os`, or `cfg!()`.
+  Then every branch compiles and is linted here, and a test can cover it. Use `#[cfg]`
+  only for code that can't compile elsewhere. Today that is the `portal` module in
+  `src/system_font.rs`, which has a stub for the other systems; keep both in step.
+- macOS and Windows always report `Decorations::Server` (GPUI's default), although
+  the app draws the title bar there. Read decorations only through
+  `platform::draws_own_title_bar`.
+- `GPUI_KIT_RSX_APP_THEME`, `_ACCENT` and `_FONT` force a look (`README.md`).
+- `.github/workflows/ci.yml` is the only check of the five other platforms. Don't claim
+  that something works there beyond what it ran. Pin each action to the commit of a
+  release at least 2 days old.
+- The platforms are listed twice: the CI jobs, and `[graph].targets` in `deny.toml`.
+  Change them together.
+
+## Allocator
+
+`src/main.rs` makes `mimalloc` the global allocator. It is the owner's wrapper,
+<https://github.com/amsokol/mimalloc>, with Microsoft's C sources as a submodule.
+
+- Take it from git by the tag of a release, never from crates.io: the `mimalloc` there
+  is another project.
+- `deny.toml` (`[sources].allow-git`) allows this one git repository. Ask the owner
+  before allowing another.
+- To update, change `tag` in `Cargo.toml` and check that `Cargo.lock` moves to the
+  commit of that tag. Don't run a plain `cargo update` for it alone.
 
 ## Lints
 
@@ -59,6 +109,10 @@ How they apply here:
   is required because `rsx!` expansions and GPUI derives emit `gpui::` paths.
 - The skills show builder chains. Write views with `rsx!`; the same ownership, identity
   and design rules apply. See the [gpui-rsx docs](https://wsafight.github.io/gpui-rsx/).
+- In an `rsx!` class, a spacing number means pixels: `gap-2` is 2 px, not GPUI's
+  `gap_2()` (8 px, which follows the base font as the design guides ask). For the rem
+  scale, call the method as an attribute: `<div class="flex" gap_2>`. Nothing fails
+  when this is wrong, so look at the window.
 - `references/usage.md` shows `gpui-kit = "0.7"`, which is outdated upstream.
   `Cargo.toml` is the source of truth for versions.
 
@@ -80,6 +134,7 @@ less than 2 days ago.
   `mise.lock` and `.mise/locks/`.
 - Neither setting covers what is fetched by other means, such as the skills.
   Check the age by hand: at least 2 days.
+- `mimalloc` is the owner's own crate and is exempt: take a new version at once.
 
 ## Updating dependencies
 
@@ -100,10 +155,16 @@ skills. The skills must always come from the tag that matches the version in
    ```
 
    If `$tmp/skills/` has other skills, or one of these two is gone, tell the owner.
-3. Update this file: the versions, the skills tag, and the notes under "Skills".
+3. Carry the patch over (see "Patched dependency"). Check whether the new
+   `gpui-pre-wgpu` still loads fonts at one weight: remove `[patch.crates-io]` and run
+   `cargo test --test font_weights`. If it passes, delete `vendor/`. If it fails,
+   replace the copy with the new version, apply the patch, restore `[patch.crates-io]`,
+   and run the test again. Cargo only warns that a patch "was not used" when the
+   versions no longer match, so look for that warning: the fix is silently gone then.
+4. Update this file: the versions, the skills tag, and the notes under "Skills".
    Check that each note is still true of the new copies. Update `README.md` too.
-4. Run `mise run gate`, then `cargo run`. Review the `Cargo.lock` diff.
-5. In the report, name the old and new versions and say that the skills were updated.
+5. Run `mise run gate`, then `cargo run`. Review the `Cargo.lock` diff.
+6. In the report, name the old and new versions and say that the skills were updated.
 
 gpui-rsx 0.13.0 lists only GPUI Kit 0.10.0 as verified. This project builds against
 0.11.0, but only the syntax used in `src/` has been exercised, so rebuild and run the

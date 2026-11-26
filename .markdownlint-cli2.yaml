@@ -17,4 +17,6 @@ globs:
 ignores:
   # Unmodified copies of the GPUI Kit skills (CLAUDE.md, "Skills").
   - ".claude/skills/**"
+  # Patched copies of dependencies (CLAUDE.md, "Patched dependency").
+  - "vendor/**"
   - "target/**"
