@@ -1,0 +1,57 @@
+# cargo-deny over Cargo.lock: known vulnerabilities, licenses, and where crates
+# come from. `mise run deny:rust` runs it; it needs the network for the RustSec
+# database.
+
+[graph]
+all-features = true
+
+[advisories]
+# Known vulnerabilities fail. An unmaintained crate fails only when we depend on
+# it directly: one deep in GPUI is not ours to replace.
+unmaintained = "workspace"
+# Ignore a vulnerability only while its fix cannot be taken (for example, it is
+# still in the quarantine), with the reason and when to remove the entry.
+ignore = []
+
+[licenses]
+# Permissive licenses only. A crate offered under several licenses passes when
+# one of them is here.
+allow = [
+  "0BSD",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "BSL-1.0",
+  "CC0-1.0",
+  "ISC",
+  "MIT",
+  "MIT-0",
+  "Unicode-3.0",
+  "Unlicense",
+  "Zlib",
+]
+# MPL-2.0 is file-level copyleft: it binds changes to the files of that crate,
+# not our code. Allowed by crate name, so that a new one is seen. All three come
+# through GPUI.
+exceptions = [
+  { allow = ["MPL-2.0"], crate = "cbindgen" },
+  { allow = ["MPL-2.0"], crate = "dwrote" },
+  { allow = ["MPL-2.0"], crate = "option-ext" },
+]
+
+# This crate is never published (`publish = false`).
+[licenses.private]
+ignore = true
+
+[bans]
+# Duplicate versions are allowed: they come from the dependencies of GPUI Kit,
+# whose GPUI snapshot is pinned.
+multiple-versions = "allow"
+wildcards = "deny"
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

@@ -1,0 +1,8 @@
+# Dependency quarantine: the resolver takes no crate version published less than
+# two days ago, unless Cargo.lock already holds it. Cargo respects this from 1.100;
+# a version the registry gives no publish time for passes unchecked.
+[registry]
+global-min-publish-age = "2 days"
+
+[resolver]
+incompatible-publish-age = "deny"

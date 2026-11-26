@@ -1,0 +1,4 @@
+{
+  // Show the clippy lints of Cargo.toml in the editor; `cargo check` skips them.
+  "rust-analyzer.check.command": "clippy"
+}

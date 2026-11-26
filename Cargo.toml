@@ -1,0 +1,47 @@
+[package]
+name = "gpui-kit-rsx-app"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+publish = false
+
+[dependencies]
+# The `gpui` alias is required: `rsx!` expansions and GPUI derives emit `gpui::` paths.
+# Pinned exactly because GPUI Kit pins its own GPUI snapshot.
+gpui = { package = "gpui-kit", version = "=0.11.0" }
+gpui-rsx = "0.13.0"
+
+[lints.rust]
+# `forbid`: no `#[allow]` can turn it back on.
+unsafe_code = "forbid"
+# A `pub` item that nothing outside the crate can reach.
+unreachable_pub = "deny"
+
+[lints.clippy]
+# The stricter group. The priority lets the single lints here override it.
+pedantic = { level = "deny", priority = -1 }
+# `use gpui::*` is how GPUI Kit's examples import GPUI.
+wildcard_imports = "allow"
+
+# Turning a lint off takes a reason.
+allow_attributes_without_reason = "deny"
+# A `#[must_use]` value, a `Result` above all, is not dropped by `let _ =`.
+let_underscore_must_use = "deny"
+# No debugging output left in the code.
+dbg_macro = "deny"
+print_stdout = "deny"
+
+# Production code must not panic: return an error or handle the case. Tests may
+# (clippy.toml and the `cfg_attr` at the top of src/main.rs).
+# Panicking macros. `assert!` and its family have no lint of their own: they are
+# listed under `disallowed-macros` in clippy.toml.
+disallowed_macros = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+unreachable = "deny"
+# Methods and expressions that panic.
+expect_used = "deny"
+indexing_slicing = "deny"
+string_slice = "deny"
+unwrap_used = "deny"

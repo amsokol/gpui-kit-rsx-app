@@ -1,0 +1,25 @@
+# The settings of the lints (Cargo.toml, [lints.clippy]).
+
+# Tests may print while being debugged.
+allow-dbg-in-tests = true
+allow-print-in-tests = true
+
+# Tests may panic. clippy has these switches for four of the lints; the others are
+# allowed by the `cfg_attr` at the top of a crate root.
+allow-expect-in-tests = true
+allow-indexing-slicing-in-tests = true
+allow-panic-in-tests = true
+allow-unwrap-in-tests = true
+
+# `debug_assert*` panics only in debug builds, and is banned too. clippy also
+# reports these when a macro of a dependency expands to one.
+disallowed-macros = [
+  { path = "std::assert", reason = "panics; return an error or handle the case" },
+  { path = "std::assert_eq", reason = "panics; return an error or handle the case" },
+  { path = "std::assert_ne", reason = "panics; return an error or handle the case" },
+  { path = "core::assert_matches", reason = "panics; return an error or handle the case" },
+  { path = "std::debug_assert", reason = "panics in debug builds" },
+  { path = "std::debug_assert_eq", reason = "panics in debug builds" },
+  { path = "std::debug_assert_ne", reason = "panics in debug builds" },
+  { path = "std::debug_assert_matches", reason = "panics in debug builds" },
+]

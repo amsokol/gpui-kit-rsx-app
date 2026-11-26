@@ -1,0 +1,64 @@
+# The tools outside the Rust toolchain, and the tasks of the project.
+#
+# mise installs every tool at the version below and records it in `mise.lock`.
+# Rust, rustfmt and clippy come from `rust-toolchain.toml` through rustup.
+#
+# `mise run gate` is the check before a commit; `mise run format` formats in place.
+
+min_version = "2026.11.14"
+
+[settings]
+lockfile = true
+# Dependency quarantine: what mise resolves itself, the transitive packages of
+# npm tools included, is at least two days old. The exact versions below are not
+# filtered; check their publish time before setting or moving one.
+minimum_release_age = "2d"
+
+[tools]
+# Rust: the checks of the dependency graph (deny.toml), and of dependencies the
+# manifest names but the code never uses.
+cargo-deny = "0.22.1"
+"github:Boshen/cargo-shear" = "1.14.1"
+
+# Markdown (.markdownlint-cli2.yaml).
+node = "26.13.1"
+"npm:markdownlint-cli2" = "0.24.2"
+
+[tasks."fmt:rust"]
+description = "Fail on Rust that rustfmt would change"
+run = "cargo fmt --all --check"
+
+[tasks."lint:rust"]
+description = "clippy over every target, warnings denied"
+run = "cargo clippy --all-targets --locked -- -D warnings"
+
+[tasks."deny:rust"]
+description = "Vulnerabilities, licenses and sources of Cargo.lock (deny.toml; needs the network)"
+run = "cargo deny --locked check --hide-inclusion-graph"
+
+[tasks."shear:rust"]
+description = "Fail on a dependency Cargo.toml names but the code never uses"
+run = "cargo shear"
+
+[tasks."lint:markdown"]
+description = "markdownlint over the project's *.md, the copied skills excluded"
+run = "markdownlint-cli2"
+
+[tasks.test]
+description = "The tests"
+run = "cargo test --locked"
+
+[tasks.gate]
+description = "The check before a commit"
+depends = [
+  "fmt:rust",
+  "lint:rust",
+  "deny:rust",
+  "shear:rust",
+  "lint:markdown",
+  "test",
+]
+
+[tasks.format]
+description = "Format the Rust in place"
+run = "cargo fmt --all"
