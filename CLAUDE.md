@@ -54,6 +54,12 @@ x86_64 can be run here.
   release at least 2 days old.
 - The platforms are listed twice: the CI jobs, and `[graph].targets` in `deny.toml`.
   Change them together.
+- `MACOSX_DEPLOYMENT_TARGET` in `.cargo/config.toml` is the oldest macOS the app is
+  built for; the owner chooses it. It keeps rustc and C code on one version.
+- A green CI run doesn't mean no warnings. Cargo hides the output of dependencies'
+  build scripts, C compiler warnings included (`cargo build -vv` shows it), and
+  rustc hides some linker messages unless run with `-W linker-info`. CI also makes no
+  release build.
 
 ## Allocator
 

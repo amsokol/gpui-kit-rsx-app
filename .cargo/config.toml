@@ -6,3 +6,9 @@ global-min-publish-age = "2 days"
 
 [resolver]
 incompatible-publish-age = "deny"
+
+# The oldest macOS the app is built for. Without it, rustc builds for its own minimum,
+# while the `cc` crate compiles C code (mimalloc) for the version of the installed SDK,
+# which may not run on an older macOS. A variable already set in the environment wins.
+[env]
+MACOSX_DEPLOYMENT_TARGET = "11.0"
