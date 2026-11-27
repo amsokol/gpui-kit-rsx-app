@@ -4,8 +4,8 @@ A minimal desktop app for Linux, macOS and Windows: a label and a button that co
 clicks, in a window that follows the system's look. It uses
 [GPUI Kit](https://gpui-kit.com) 0.11.0 and
 [gpui-rsx](https://github.com/wsafight/gpui-rsx) 0.13.0. Memory comes from
-[mimalloc](https://github.com/amsokol/mimalloc) 3.7.1, built from its C sources, so
-the build needs a C compiler.
+[mimalloc](https://github.com/microsoft/mimalloc) 3.7.1 through Microsoft's own Rust
+crate, built from the C sources, so the build needs a C compiler.
 
 Only Linux x86_64 (GNOME on Wayland) has been tried by hand. CI is set up to compile and
 test the app on Linux, Windows and macOS, each on x86_64 and Arm64. The macOS build
