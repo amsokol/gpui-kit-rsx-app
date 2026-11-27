@@ -6,6 +6,7 @@ use gpui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, TITLE_BAR_HEIGHT, TitleBar,
     button::{Button, ButtonVariants as _},
     label::Label,
+    window_corner_radii,
 };
 use gpui::prelude::*;
 use gpui::*;
@@ -22,6 +23,10 @@ const TITLE: &str = "GPUI Kit RSX App";
 /// The most window buttons a title bar has on one side: minimize, maximize and close. Each
 /// is as wide as the title bar is high.
 const MAX_WINDOW_BUTTONS: f32 = 3.;
+
+/// GPUI Kit's padding before the first thing in its title bar, window buttons on the left
+/// included. macOS has more, for the traffic lights.
+const TITLE_BAR_PADDING: Pixels = px(12.);
 
 /// How long after opening to check that the window got the requested size and state.
 const RESTORE_SETTLE: Duration = Duration::from_millis(300);
@@ -196,10 +201,26 @@ fn title_icon(cx: &App) -> Div {
 const TITLE_SELECTOR: &str = "window-title";
 const ICON_SELECTOR: &str = "window-title-icon";
 
+/// How far the window buttons keep from the right edge below a top corner of `radius`, in a
+/// window with a border of 1 px.
+///
+/// GPUI Kit's buttons are squares as high as the title bar, and GPUI clips only to rectangles,
+/// so at the edge their hover color would stick out past the rounded corner. This is the
+/// least distance, in whole pixels, that keeps the square's corner inside the window's:
+/// `r − 1 − √(2r − 1)`. On the left, [`TITLE_BAR_PADDING`] is already more.
+fn window_buttons_inset(radius: Pixels) -> Pixels {
+    let radius = f32::from(radius);
+    let inset = radius - 1. - (2. * radius - 1.).max(0.).sqrt();
+    px(inset.ceil().max(0.))
+}
+
 /// GPUI Kit's title bar with the title as the system shows it.
-fn title_bar(os: Os, cx: &App) -> AnyElement {
+fn title_bar(os: Os, window: &Window, cx: &App) -> AnyElement {
+    // The radius is 0 when the corner is square, as in a maximized window.
+    let inset = window_buttons_inset(window_corner_radii(window, cx).top_right);
+    let bar = TitleBar::new().pr(inset);
     match platform::title_alignment(os) {
-        TitleAlignment::Start => TitleBar::new()
+        TitleAlignment::Start => bar
             .child(
                 rsx! { <div class="flex-1 h-full flex items-center min-w-0">{title(os, cx)}</div> },
             )
@@ -209,10 +230,10 @@ fn title_bar(os: Os, cx: &App) -> AnyElement {
         // bar. The layer takes no mouse events: dragging the title still moves the window.
         // Both sides keep clear of the window buttons, whichever side the desktop uses.
         TitleAlignment::Center => {
-            let buttons = TITLE_BAR_HEIGHT * MAX_WINDOW_BUTTONS;
+            let buttons = TITLE_BAR_HEIGHT * MAX_WINDOW_BUTTONS + TITLE_BAR_PADDING;
             rsx! {
                 <div class="relative flex-shrink-0">
-                    {TitleBar::new()}
+                    {bar}
                     <div class="absolute top-0 left-0 w-full flex items-center justify-center"
                         h={TITLE_BAR_HEIGHT} px={buttons}>
                         {title(os, cx)}
@@ -228,10 +249,11 @@ impl Render for AppWindow {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let os = Os::current();
         let title_bar = platform::draws_own_title_bar(os, window.window_decorations())
-            .then(|| title_bar(os, cx));
+            .then(|| title_bar(os, window, cx));
+        // No background here: it would be a rectangle over the window's rounded corners.
+        // `Root` paints the theme's background and sets the text color.
         rsx! {
-            <div class="size-full flex flex-col"
-                bg={cx.theme().background} text_color={cx.theme().foreground}>
+            <div class="size-full flex flex-col">
                 {...title_bar}
                 <div class="flex-1 flex flex-col items-center justify-center" gap_2>
                     <Label(format!("Clicked {} times", self.clicks)) />
@@ -254,14 +276,28 @@ mod tests {
         WindowOptions, div, point, px, size,
     };
 
-    use super::{ICON_SELECTOR, TITLE_SELECTOR, title_bar};
+    use super::{ICON_SELECTOR, TITLE_SELECTOR, title_bar, window_buttons_inset};
     use crate::platform::Os;
 
     struct Bar(Os);
 
     impl Render for Bar {
-        fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-            div().size_full().child(title_bar(self.0, cx))
+        fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+            div().size_full().child(title_bar(self.0, window, cx))
+        }
+    }
+
+    #[test]
+    fn the_buttons_keep_inside_a_rounded_corner() {
+        assert_eq!(window_buttons_inset(px(15.)), px(9.));
+        assert_eq!(window_buttons_inset(px(0.)), px(0.));
+        // The square's corner, behind the 1 px border, is inside the window's arc.
+        for radius in 1..=32_u8 {
+            let radius = f32::from(radius);
+            let inset = f32::from(window_buttons_inset(px(radius)));
+            let right_of_center = (radius - 1. - inset).max(0.);
+            let distance = right_of_center.hypot(radius - 1.);
+            assert!(distance <= radius, "radius {radius}: inset {inset}");
         }
     }
 
@@ -298,8 +334,8 @@ mod tests {
     fn a_narrow_window_keeps_the_title_clear_of_the_buttons(cx: &mut TestAppContext) {
         let mut cx = open(cx, Os::Linux, px(320.));
         let title = cx.debug_bounds(TITLE_SELECTOR).expect("the title is drawn");
-        assert!(title.left() >= px(102.), "starts at {:?}", title.left());
-        assert!(title.right() <= px(218.), "ends at {:?}", title.right());
+        assert!(title.left() >= px(114.), "starts at {:?}", title.left());
+        assert!(title.right() <= px(206.), "ends at {:?}", title.right());
     }
 
     #[gpui::test]
