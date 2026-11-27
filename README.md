@@ -8,7 +8,9 @@ clicks, in a window that follows the system's look. It uses
 the build needs a C compiler.
 
 Only Linux x86_64 (GNOME on Wayland) has been tried by hand. CI is set up to compile and
-test the app on Linux, Windows and macOS, each on x86_64 and Arm64.
+test the app on Linux, Windows and macOS, each on x86_64 and Arm64. The macOS build
+targets macOS 11.0 and later; it has not been run on any macOS by hand. A release build
+on Windows opens without a console, so its error messages are not shown.
 
 ## The window
 

@@ -1,3 +1,6 @@
+// A release build on Windows opens no console next to the window; what `eprintln!`
+// writes is then not shown. A debug build keeps the console.
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 // Tests may panic. clippy.toml covers `unwrap`, `expect`, `panic!` and indexing;
 // the rest of the no-panic lints (Cargo.toml) are allowed here, in test builds only.
 #![cfg_attr(
