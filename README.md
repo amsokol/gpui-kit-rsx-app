@@ -19,6 +19,10 @@ on Windows opens without a console, so its error messages are not shown.
   regular weight, after the app's icon. macOS keeps its traffic lights, and Linux
   follows the desktop's button layout. Where the window manager draws a title bar
   itself, the app draws none.
+- **Rounded corners.** Where the app decorates its own window on Linux, the corners
+  have libadwaita's radius, and those at a maximized or tiled edge are square. While
+  the top right corner is rounded, the window buttons keep a little away from the
+  right edge. On macOS and Windows the app leaves the corners to the system.
 - **Light and dark.** The system's mode at startup, and each change after it.
 - **Accent color.** The system's accent color tints the controls, and follows changes.
 - **Font.** The system's UI font. On Linux it is read from GNOME's or KDE's setting

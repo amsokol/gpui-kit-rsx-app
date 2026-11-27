@@ -48,6 +48,10 @@ x86_64 can be run here.
 - macOS and Windows always report `Decorations::Server` (GPUI's default), although
   the app draws the title bar there. Read decorations only through
   `platform::draws_own_title_bar`.
+- GPUI clips only to rectangles, so each element with a background that touches a
+  window corner, such as a future bottom bar, must round it by `window_corner_radii`.
+  `Root` and `TitleBar` do; the window buttons don't, hence `window_buttons_inset`.
+  Don't paint a background over the whole window: `Root` paints it already.
 - `GPUI_KIT_RSX_APP_THEME`, `_ACCENT` and `_FONT` force a look (`README.md`).
 - `.github/workflows/ci.yml` is the only check of the five other platforms. Don't claim
   that something works there beyond what it ran. Pin each action to the commit of a

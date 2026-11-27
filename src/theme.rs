@@ -26,6 +26,10 @@ pub(crate) const APPEARANCE_SETTLE: Duration = Duration::from_millis(50);
 const APPEARANCE_WAIT: Duration = Duration::from_millis(100);
 const APPEARANCE_POLL: Duration = Duration::from_millis(5);
 
+/// The corner radius of a window the app decorates itself, as in libadwaita. GPUI Kit's is 0.
+/// It has no effect under server decorations, and GPUI Kit keeps tiled corners square.
+const WINDOW_RADIUS: usize = 15;
+
 /// Applies the light or the dark theme with the current accent color and font.
 /// Call [`gpui::init`] first.
 pub(crate) fn apply(dark: bool, cx: &mut App) {
@@ -40,6 +44,7 @@ pub(crate) fn apply(dark: bool, cx: &mut App) {
         accent::tint(&mut config, accent);
     }
     config.font_family = Some(system_font::family(cx));
+    config.window_radius = Some(WINDOW_RADIUS);
     let config = Rc::new(config);
     Theme::update(cx, |theme| theme.apply_config(&config));
 }
@@ -94,7 +99,7 @@ pub(crate) async fn system_is_dark(cx: &mut AsyncApp) -> bool {
 #[cfg(test)]
 mod tests {
     use gpui::component::{ActiveTheme as _, ThemeRegistry};
-    use gpui::{Hsla, TestAppContext, rgb};
+    use gpui::{Hsla, TestAppContext, px, rgb};
 
     use super::{apply, parse_mode, reapply};
     use crate::accent::{self, Rgb};
@@ -115,6 +120,17 @@ mod tests {
             assert!(cx.theme().mode.is_dark());
             apply(false, cx);
             assert!(!cx.theme().mode.is_dark());
+        });
+    }
+
+    #[gpui::test]
+    fn the_window_corners_are_rounded_in_both_modes(cx: &mut TestAppContext) {
+        cx.update(|cx| {
+            gpui::init(cx);
+            for dark in [true, false] {
+                apply(dark, cx);
+                assert_eq!(cx.theme().window_radius, px(15.), "dark: {dark}");
+            }
         });
     }
 
