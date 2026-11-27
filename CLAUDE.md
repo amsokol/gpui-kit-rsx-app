@@ -67,15 +67,21 @@ x86_64 can be run here.
 
 ## Allocator
 
-`src/main.rs` makes `mimalloc` the global allocator. It is the owner's wrapper,
-<https://github.com/amsokol/mimalloc>, with Microsoft's C sources as a submodule.
+`src/main.rs` makes `mimalloc` the global allocator. It is Microsoft's own Rust crate,
+`contrib/rust` of <https://github.com/microsoft/mimalloc>, built from the C sources of
+the same repository.
 
-- Take it from git by the tag of a release, never from crates.io: the `mimalloc` there
-  is another project.
+- Take it from git by the tag of a release, never from crates.io, where Microsoft
+  doesn't publish it: the `mimalloc` there is another project.
+- The feature `no_thp` turns transparent huge pages off for the whole process on Linux.
+  With the system set to `always`, it saved about 35 MiB of resident memory just after
+  startup (measured on 2026-11-27, x86_64). Speed was not measured.
 - `deny.toml` (`[sources].allow-git`) allows this one git repository. Ask the owner
   before allowing another.
-- To update, change `tag` in `Cargo.toml` and check that `Cargo.lock` moves to the
-  commit of that tag. Don't run a plain `cargo update` for it alone.
+- To update, change `tag` in `Cargo.toml` and check that `Cargo.lock` moves both
+  `mimalloc` and `mimalloc-sys` to the commit of that tag. Don't run a plain
+  `cargo update` for it alone. The quarantine doesn't cover git: check by hand that the
+  release was published at least 2 days ago. Update `README.md` too.
 
 ## Lints
 
@@ -144,7 +150,6 @@ less than 2 days ago.
   `mise.lock` and `.mise/locks/`.
 - Neither setting covers what is fetched by other means, such as the skills.
   Check the age by hand: at least 2 days.
-- `mimalloc` is the owner's own crate and is exempt: take a new version at once.
 
 ## Updating dependencies
 

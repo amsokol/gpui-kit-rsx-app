@@ -66,5 +66,5 @@ allow-wildcard-paths = true
 unknown-registry = "deny"
 unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
-# The owner's own crate, the global allocator, which is not on crates.io.
-allow-git = ["https://github.com/amsokol/mimalloc"]
+# Microsoft's Rust bindings of the global allocator, which are not on crates.io.
+allow-git = ["https://github.com/microsoft/mimalloc"]

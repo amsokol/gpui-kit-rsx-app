@@ -13,9 +13,11 @@ gpui-rsx = "0.13.0"
 # The per-user config directory, where the window state is kept.
 dirs = "7.0.0"
 futures-lite = "2.6.1"
-# The global allocator: the owner's wrapper of Microsoft's mimalloc, taken from git. The
-# crate of this name on crates.io is another project. Exempt from the quarantine (CLAUDE.md).
-mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.7.1" }
+# The global allocator: Microsoft's own bindings (contrib/rust), taken from git. The crate
+# of this name on crates.io is another project. `no_thp` saves memory on Linux (CLAUDE.md).
+mimalloc = { git = "https://github.com/microsoft/mimalloc", tag = "v3.7.1", features = [
+    "no_thp",
+] }
 # The system accent color: XDG portal on Linux, UISettings on Windows, NSColor on macOS.
 mundy = { version = "=0.2.3", default-features = false, features = [
     "accent-color",
